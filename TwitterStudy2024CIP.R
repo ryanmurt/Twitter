@@ -18,8 +18,8 @@ library(rcrossref)
 # See Elsevier's Developer Portal at
 # https://dev.elsevier.com/interactive.html
 
-################################################
-################################################
+#################################################
+#################################################
 # Script parameters
 
 # Elsevier API
