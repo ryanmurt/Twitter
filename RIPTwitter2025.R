@@ -15,6 +15,7 @@ library(rcrossref)
 # Information Science and Technology Abstracts, Web of Science, Global
 # Health, ACM Digital Library, IEEE Xplore) were downloaded from the database
 # websites and input into Zotero, then uploaded to R.
+# Data was pulled in June, 2025. 
 
 # Engineering Village (which contains Compendex and Inspec databases) results
 # were too large to download from the website, so we accessed via the API.
@@ -28,17 +29,16 @@ library(rcrossref)
 # Elsevier API
 
 ev_base_url <- "https://api.elsevier.com/content/ev"
-ev_api_key <- "7a9e3f84fd5e869e971bd1f8b525c9c7"
-ev_api_inst_token <- "9da2a70c0a23dfa1aa5be16a0d41f569"
+ev_api_key <- ""
+ev_api_inst_token <- ""
 
 # Files
 
-#base_dir <- "."
-base_dir <- "~/Desktop"
+base_dir <- "."
 
 # Crossref params
 
-email_address <- "ryanmurt@uw.edu" 
+email_address <- "" 
 
 ################################################
 ################################################
@@ -638,7 +638,7 @@ Combined_finalJune2025 <- Combined_finalJune2025 %>%
 write.csv(Combined_finalJune2025, file.path(data_dir, "Combined_finalJune2025.csv"), row.names=FALSE)
 
 # Transform Publication Title column in the following ways: make all characters lowercase, remove "the", "proceedings of", and all punctuation. 
-# This will allow for clean analysis such as counting how many articles were published in a particular journal or conference.
+# While not perfect, this will allow for clean analysis such as counting how many articles were published in a particular journal or conference.
 
 library(dplyr)
 library(stringr)
@@ -672,14 +672,33 @@ write.csv(Combined_finalJune2025, file.path(data_dir, "Combined_finalJune2025.cs
 ##########################
 ##Begin data analysis:
 
+#This includes all studies through June 2025
 Combined_finalJune2025 <- read.csv(file.path(data_dir, "Combined_finalJune2025.csv"))
 
-# Counting the number of articles per year
-year_count <- Combined_finalJune2025 %>% group_by(Year) %>% 
-  summarise(number_of_studies=n()) %>% 
-  filter(number_of_studies > 1)
+#removing any studies before 2007 (before the API was created), and removing all studies from 2025 (we're not including these in this version of the paper)
+Combined_finalDec2024_filtered <- Combined_finalJune2025 %>%
+  filter(Year >= 2007 & Year <= 2024)
 
-view(year_count)
+write.csv(Combined_finalDec2024_filtered, file.path(data_dir, "Combined_finalDec2024_filtered.csv"))
+
+# Counting the number of articles per year (2007-2024)
+year_count <- Combined_finalDec2024_filtered %>% group_by(Year) %>% 
+  summarise(number_of_studies=n()) %>% 
+  filter(number_of_studies > 0)
+#answer is 33,306
+write.csv(year_count, file.path(data_dir, "year_count2024.csv"))
+
+# Finding the median annual change (number of studies) from 2007-2024
+counts <- c(1, 5, 28, 205, 399, 681, 1072, 1283, 1662, 1946, 
+            2186, 2462, 2478, 3092, 3623, 4222)
+
+pct_changes <- ((counts[-1] - counts[-length(counts)]) / counts[-length(counts)]) * 100
+
+print("Year-to-year percentage changes:")
+print(round(pct_changes, 2))
+
+avg_pct_change <- median(pct_changes)
+cat("Average annual percentage change:", round(avg_pct_change, 2), "%\n")
 
 # Graphing the number of articles per year
 # I also did this in Excel for ease of manipulating visualization
@@ -693,35 +712,20 @@ ggplot(data = year_count) +
 
 # Counting the number of times a journal or conference comes up and
 # putting in order
-publisher_count2 <- Combined_final_random %>%
-  group_by(publisher) %>% 
+publisher_count <- Combined_finalDec2024_filtered %>%
+  group_by(Publication.Title.Stripped) %>% 
   summarise(number_of_studies=n()) %>%
-  na.omit(publisher_count2) %>%
+  na.omit() %>%
   arrange(desc(number_of_studies))
 
-write.csv(publisher_count2, file.path(data_dir, "Publisher_Count2.csv"), row.names=FALSE)
-publisher_count2 <- read_csv(file.path(data_dir, "Publisher_Count2.csv"))
+write.csv(publisher_count, file.path(data_dir, "Publisher_Count2024.csv"), row.names=FALSE)
+
+# Next, used Google Sheets to find same conferences with slightly different names for the top 10 venues only (ie. "international conference on computational science and computational intelligence csci" vs. "annual international conference on computational science and computational intelligence csci")
+# Create chart in Google Sheets (top 10 publications)
 
 # How many unique journals and conferences are represented in the data?
-publisher_count2_unique <- unique(publisher_count2$Publisher) %>% na.omit()
-# result: 7432
-
-write.csv(publisher_count2_unique, file.path(data_dir, "publisher_count2_unique.csv"), row.names=FALSE)
-
-# export publisher_count2_unique to excel and search for duplicates (happens when
-# there are acronyms at the beginning or end of cell), adding cells together
-# and then deleting extra cells.
-#
-# Occasionally several conferences combine into a single conference, or there
-# are breakout workshops/series as part of a conference. I tried to select
-# the primary conference or the conference with the widest umbrella.
-#
-# I stopped at row 145 (19 papers). It is possible there are others that if
-# combined would make it into the top 100 journal/conferences, but I decided
-# to make the call here. My suspicion is that even if there are a few more,
-# they would not change the % for the discipline breakout.
-
-Journals_Top_100 <- read_csv(file.path(data_dir, "publisher_count2_unique.csv"))
+publisher_count_unique <- unique(publisher_count$Publication.Title.Stripped) %>% na.omit()
+# result: 8914 (this number includes all venues in the dataset, including those venues that I combined into one in the google sheet)
 
 # Graphing Top 100 journals
 ggplot(data = Journals_Top_100) + 
@@ -731,17 +735,18 @@ ggplot(data = Journals_Top_100) +
 
 ####################
 # Using Crossref to find citations for each article
+# Citations are based on data pulled on August 12, 2025
 
 library("rjson")
 
 # Create a vector containing all DOIs
-Combined_finalDec2023 <- read.csv(file.path(data_dir, "Combined_finalDec2023.csv"), stringsAsFactors = FALSE)
-FinalDec2023_vec <- Combined_finalDec2023$DOI
+Combined_finalDec2024 <- read.csv(file.path(data_dir, "Combined_finalDec2024_filtered.csv"), stringsAsFactors = FALSE)
+FinalDec2024_vec <- Combined_finalDec2024$DOI
 
 # Create for loop to collect all of the "is-referenced-by-count" numbers (number of citations):
 cited_by_list <- numeric(0)  
 
-for (cur_doi in FinalDec2023_vec) {
+for (cur_doi in FinalDec2024_vec) {
   resp <- GET(glue("https://api.crossref.org/works/{cur_doi}?mailto={email_address}"))
   
   if (resp[["status_code"]] == 404) {
@@ -758,29 +763,25 @@ for (cur_doi in FinalDec2023_vec) {
   cited_by_df <- data.frame(referenced_by_count = cited_by_list)
 }
 
-# Save as csv to desktop (just in case a GET gets messed up)
+# Save as csv (just in case a GET gets messed up)
 write.csv(cited_by_df, file.path(data_dir, "cited_by_df.csv"), row.names=FALSE)
 
-# Create and save new DataFrame with only the "DOI" column from final dataset
-finalDec2023_DOIs <- data.frame(DOI = Combined_finalDec2023$DOI)
-write.csv(finalDec2023_DOIs, file.path(data_dir, "finalDec2023_DOIs.csv"), row.names=FALSE)
+# Create a new DataFrame with DOI, Title, and Abstract
+finalDec2024_metadata <- Combined_finalDec2024[, c("DOI", "Title", "Abstract")]
 
-# Read in full DOI list: 
-finalDec2023_DOIs <- read.csv(file.path(data_dir, "finalDec2023_DOIs.csv"), stringsAsFactors = FALSE)
-# Take cited_by_df and combine with DOI list to create one dataframe with 2 columns:
-combined_dois_Dec2023 <- data.frame(referenced_by_count = unlist(cited_by_df), DOI = unlist(finalDec2023_DOIs))
+# Combine the cited_by_df and metadata into one DataFrame
+combined_dois_Dec2024 <- data.frame(
+  referenced_by_count = unlist(cited_by_df),
+  finalDec2024_metadata
+)
 
 # Sort the DataFrame in descending order based on "referenced_by_count"
-combined_dois_Dec2023 <- combined_dois_Dec2023[order(-combined_dois_Dec2023$referenced_by_count), ]
+combined_dois_Dec2024 <- combined_dois_Dec2024[order(-combined_dois_Dec2024$referenced_by_count), ]
 
 # Calculate the sum of the "referenced_by_count" column
-total_sum_dois <- sum(combined_dois_Dec2023$referenced_by_count)
+total_sum_dois <- sum(combined_dois_Dec2024$referenced_by_count, na.rm = TRUE)
+#Answer is 623,212
 
-# Save as csv to desktop:
-write.csv(combined_dois_Dec2023, file.path(data_dir, "combined_dois_Dec2023.csv"), row.names=FALSE)
+write.csv(combined_dois_Dec2024, file.path(data_dir, "combined_dois_Dec2024.csv"), row.names=FALSE)
 
-# Rank the final_dataset by referenced_by_count column:
-final_dataset <- read.csv(file.path(data_dir, "final_dataset.csv"), stringsAsFactors = FALSE)
-final_dataset_references <- final_dataset[order(-final_dataset$referenced_by_count), ]
-write.csv(final_dataset_references, file.path(data_dir, "final_dataset_references.csv"), row.names=FALSE)
 
