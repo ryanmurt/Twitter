@@ -12,5 +12,5 @@ Since 2006, Twitter's Application Programming Interface (API) has been a treasur
 **Final_Dataset_and_ChartsDec2024.xlsx** contains corpus and charts from most recent data collection, December 2024 (paper is based on these data)
 
 # License
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE.rtf) file for details.
 
