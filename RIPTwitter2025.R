@@ -1,6 +1,3 @@
-install.packages(c("rvest", "jsonlite", "httr", "clipr", "glue", "tidyverse", "ggplot2", "dplyr", "rcrossref"))
-
-
 library(rvest)
 library(jsonlite)
 library(httr)
@@ -29,8 +26,8 @@ library(rcrossref)
 # Elsevier API
 
 ev_base_url <- "https://api.elsevier.com/content/ev"
-ev_api_key <- ""
-ev_api_inst_token <- ""
+ev_api_key <- "XXXX"
+ev_api_inst_token <- "XXXX"
 
 # Files
 
@@ -38,7 +35,7 @@ base_dir <- "."
 
 # Crossref params
 
-email_address <- "" 
+email_address <- "XXX" 
 
 ################################################
 ################################################
