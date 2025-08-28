@@ -732,7 +732,7 @@ ggplot(data = Journals_Top_100) +
 
 ####################
 # Using Crossref to find citations for each article
-# Citations are based on data pulled on August 12, 2025
+# Citations pulled on July 10, 2025
 
 library("rjson")
 
