@@ -12,7 +12,7 @@ library(rcrossref)
 # Information Science and Technology Abstracts, Web of Science, Global
 # Health, ACM Digital Library, IEEE Xplore) were downloaded from the database
 # websites and input into Zotero, then uploaded to R.
-# Data was pulled in June, 2025. 
+# Data was pulled in June, 2025, but only data through December, 2024 was used for final paper results. 
 
 # Engineering Village (which contains Compendex and Inspec databases) results
 # were too large to download from the website, so we accessed via the API.
